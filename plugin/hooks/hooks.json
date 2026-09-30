@@ -1,0 +1,17 @@
+{
+  "description": "Sedef guardrails for humans working interactively in factory product repos. Factory sessions enforce the same policy in-process and skip this hook.",
+  "hooks": {
+    "PreToolUse": [
+      {
+        "matcher": "Bash|Read|Write|Edit|MultiEdit|NotebookEdit|WebFetch",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "\"${CLAUDE_PLUGIN_ROOT}\"/hooks/guard.sh pretooluse",
+            "timeout": 15
+          }
+        ]
+      }
+    ]
+  }
+}

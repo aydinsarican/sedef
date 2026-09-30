@@ -1,0 +1,28 @@
+{
+  "name": "sedef-runner",
+  "version": "0.1.0",
+  "private": true,
+  "description": "Sedef foreman: deterministic scheduler, policy engine and budget guard that drives Claude Agent SDK sessions.",
+  "type": "module",
+  "engines": {
+    "node": ">=22"
+  },
+  "bin": {
+    "sedef": "dist/src/cli.js"
+  },
+  "scripts": {
+    "build": "tsc -p tsconfig.json",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "npm run build && node --experimental-test-module-mocks --test dist/test/*.test.js",
+    "start": "node dist/src/cli.js start"
+  },
+  "dependencies": {
+    "@anthropic-ai/claude-agent-sdk": "^0.3.285",
+    "yaml": "^2.9.1",
+    "zod": "^4.6.5"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.3",
+    "typescript": "^7.0.2"
+  }
+}

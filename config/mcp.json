@@ -1,0 +1,179 @@
+{
+  "mcpServers": {
+    "mobilebuild": {
+      "description": "Sentry's MobileBuildMCP (formerly XcodeBuildMCP): build, run, test, screenshot and drive iOS simulators headlessly.",
+      "auth": "none",
+      "command": "npx",
+      "args": [
+        "-y",
+        "mobilebuildmcp@2.7.1",
+        "mcp"
+      ],
+      "env": {
+        "MOBILEBUILDMCP_SENTRY_DISABLED": "true",
+        "INCREMENTAL_BUILDS_ENABLED": "true",
+        "MOBILEBUILDMCP_ENABLED_WORKFLOWS": "simulator,ui-automation,debugging"
+      },
+      "timeout": 600000
+    },
+    "xcode": {
+      "description": "Apple's Xcode MCP bridge (Xcode 26.3+). Needs Xcode running with the project open, or Xcode 27's `xcrun mcp-server enable`. Not wired into any stage by default.",
+      "auth": "none",
+      "command": "xcrun",
+      "args": [
+        "mcpbridge"
+      ],
+      "timeout": 600000
+    },
+    "maestro": {
+      "description": "Maestro UI testing (inspect screen, run flows, screenshots). Needs Java 17+.",
+      "auth": "none",
+      "command": "maestro",
+      "args": [
+        "mcp",
+        "--no-viewer"
+      ],
+      "env": {
+        "JAVA_HOME": "${JAVA_HOME:-/opt/homebrew/opt/openjdk@17}",
+        "MAESTRO_CLI_NO_ANALYTICS": "true",
+        "MAESTRO_DISABLE_UPDATE_CHECK": "true"
+      }
+    },
+    "context7": {
+      "description": "Up-to-date library documentation (keyless; set CONTEXT7_API_KEY in args for higher limits).",
+      "auth": "none",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@upstash/context7-mcp@latest"
+      ]
+    },
+    "playwright": {
+      "description": "Microsoft Playwright MCP for web QA, screenshots and landing-page checks. Uses installed Chrome.",
+      "auth": "none",
+      "command": "npx",
+      "args": [
+        "-y",
+        "@playwright/mcp@0.0.83",
+        "--headless",
+        "--isolated"
+      ]
+    },
+    "revenuecat": {
+      "description": "RevenueCat: products, entitlements, offerings, AI paywalls, push products to the stores.",
+      "auth": "key",
+      "type": "http",
+      "url": "https://mcp.revenuecat.ai/mcp",
+      "headers": {
+        "Authorization": "Bearer ${REVENUECAT_API_KEY}"
+      }
+    },
+    "fal": {
+      "description": "fal.ai: 1,000+ image/video/audio models (Nano Banana, FLUX, Recraft, Veo, Kling …). Paid per run — capped in policy.yaml.",
+      "auth": "key",
+      "type": "http",
+      "url": "https://mcp.fal.ai/mcp",
+      "headers": {
+        "Authorization": "Bearer ${FAL_KEY}"
+      }
+    },
+    "replicate": {
+      "description": "Replicate models via the local server (the hosted one needs browser login).",
+      "auth": "key",
+      "command": "npx",
+      "args": [
+        "-y",
+        "replicate-mcp@0.9.0",
+        "--client=claude-code"
+      ],
+      "env": {
+        "REPLICATE_API_TOKEN": "${REPLICATE_API_TOKEN}"
+      }
+    },
+    "recraft": {
+      "description": "Recraft: true SVG/vector icons and illustrations, custom styles from references. OAuth: add + log in once (`claude mcp add --scope user --transport http recraft <url> && claude mcp login recraft`).",
+      "auth": "oauth",
+      "type": "http",
+      "url": "https://mcp.recraft.ai/mcp"
+    },
+    "elevenlabs": {
+      "description": "ElevenLabs: voice-over, sound effects, licensed music for previews and ads.",
+      "auth": "key",
+      "command": "uvx",
+      "args": [
+        "elevenlabs-mcp@0.12.2"
+      ],
+      "env": {
+        "ELEVENLABS_API_KEY": "${ELEVENLABS_API_KEY}",
+        "ELEVENLABS_MCP_BASE_PATH": "${ELEVENLABS_MCP_BASE_PATH:-/tmp/sedef-audio}",
+        "ELEVENLABS_MCP_OUTPUT_MODE": "files"
+      }
+    },
+    "stitch": {
+      "description": "Google Stitch: fast divergent screen variants and design-system application.",
+      "auth": "key",
+      "type": "http",
+      "url": "https://stitch.googleapis.com/mcp",
+      "headers": {
+        "X-Goog-Api-Key": "${STITCH_API_KEY}"
+      }
+    },
+    "figma": {
+      "description": "Figma: write frames/components/variables to the canvas (use_figma), design-system search, shaders. OAuth: add + log in once (`claude mcp add --scope user --transport http figma <url> && claude mcp login figma`).",
+      "auth": "oauth",
+      "type": "http",
+      "url": "https://mcp.figma.com/mcp"
+    },
+    "mobbin": {
+      "description": "Mobbin: real app screens and flows for UX reference (paid). OAuth.",
+      "auth": "oauth",
+      "type": "http",
+      "url": "https://api.mobbin.com/mcp"
+    },
+    "refero": {
+      "description": "Refero: UI reference search (paid).",
+      "auth": "key",
+      "type": "http",
+      "url": "https://api.refero.design/mcp",
+      "headers": {
+        "Authorization": "Bearer ${REFERO_TOKEN}"
+      }
+    },
+    "supabase": {
+      "description": "Supabase (read-only by default; migrations go through the Supabase CLI in the repo).",
+      "auth": "key",
+      "type": "http",
+      "url": "https://mcp.supabase.com/mcp?project_ref=${SUPABASE_PROJECT_REF}&read_only=true&features=database,docs,debugging,development",
+      "headers": {
+        "Authorization": "Bearer ${SUPABASE_ACCESS_TOKEN}"
+      }
+    },
+    "apify": {
+      "description": "Apify: thousands of scrapers (App Store reviews, Reddit, Product Hunt …) for scouting and validation. Runs are billed.",
+      "auth": "key",
+      "type": "http",
+      "url": "https://mcp.apify.com?telemetry-enabled=false",
+      "headers": {
+        "Authorization": "Bearer ${APIFY_TOKEN}"
+      }
+    },
+    "expo": {
+      "description": "Expo/EAS: builds, workflows, TestFlight crashes, store review replies. OAuth: add + log in once (`claude mcp add --scope user --transport http expo <url> && claude mcp login expo`).",
+      "auth": "oauth",
+      "type": "http",
+      "url": "https://mcp.expo.dev/mcp"
+    },
+    "vercel": {
+      "description": "Vercel: projects, deployments, logs. OAuth. (Deploys themselves go through the CLI with VERCEL_TOKEN.)",
+      "auth": "oauth",
+      "type": "http",
+      "url": "https://mcp.vercel.com"
+    },
+    "notion": {
+      "description": "Notion: optional mirror of the idea board and portfolio reports. OAuth.",
+      "auth": "oauth",
+      "type": "http",
+      "url": "https://mcp.notion.com/mcp"
+    }
+  }
+}

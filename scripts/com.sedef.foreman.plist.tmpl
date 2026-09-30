@@ -1,0 +1,44 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>Label</key>
+	<string>com.sedef.foreman</string>
+	<key>ProgramArguments</key>
+	<array>
+		<string>__NODE__</string>
+		<string>__ROOT__/runner/dist/src/cli.js</string>
+		<string>start</string>
+	</array>
+	<key>WorkingDirectory</key>
+	<string>__ROOT__</string>
+	<key>EnvironmentVariables</key>
+	<dict>
+		<key>PATH</key>
+		<string>__PATH__</string>
+		<key>HOME</key>
+		<string>__HOME__</string>
+		<key>SEDEF_HOME</key>
+		<string>__ROOT__</string>
+		<key>JAVA_HOME</key>
+		<string>__JAVA_HOME__</string>
+		<key>LANG</key>
+		<string>en_US.UTF-8</string>
+	</dict>
+	<key>RunAtLoad</key>
+	<true/>
+	<key>KeepAlive</key>
+	<dict>
+		<key>SuccessfulExit</key>
+		<false/>
+	</dict>
+	<key>ThrottleInterval</key>
+	<integer>60</integer>
+	<key>ProcessType</key>
+	<string>Background</string>
+	<key>StandardOutPath</key>
+	<string>__ROOT__/factory/logs/launchd.out.log</string>
+	<key>StandardErrorPath</key>
+	<string>__ROOT__/factory/logs/launchd.err.log</string>
+</dict>
+</plist>

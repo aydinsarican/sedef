@@ -1,0 +1,9 @@
+{
+  "name": "sedef",
+  "displayName": "Sedef Factory",
+  "version": "0.1.0",
+  "description": "Agents, skills and guardrails for the Sedef autonomous product factory: idea → validated → designed → built → verified → shipped → grown.",
+  "author": { "name": "Sedef" },
+  "license": "MIT",
+  "keywords": ["factory", "autonomous", "ios", "swiftui", "app-store", "design", "phase-runner"]
+}

@@ -1,0 +1,14 @@
+#!/usr/bin/env bash
+# sedef CLI — resolves its own location (works through the Homebrew-bin symlink) and runs the foreman CLI.
+set -euo pipefail
+SOURCE="${BASH_SOURCE[0]}"
+while [ -L "$SOURCE" ]; do
+  DIR="$(cd -P "$(dirname "$SOURCE")" && pwd)"
+  SOURCE="$(readlink "$SOURCE")"
+  [[ "$SOURCE" != /* ]] && SOURCE="$DIR/$SOURCE"
+done
+ROOT="$(cd -P "$(dirname "$SOURCE")/.." && pwd)"
+export SEDEF_HOME="${SEDEF_HOME:-$ROOT}"
+CLI="$ROOT/runner/dist/src/cli.js"
+[ -f "$CLI" ] || { echo "sedef: runner not built — run ./install.sh (or: cd runner && npm ci && npm run build)" >&2; exit 1; }
+exec node "$CLI" "$@"

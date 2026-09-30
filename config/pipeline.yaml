@@ -1,0 +1,403 @@
+# Sedef pipeline — every stage is one fresh agent session with its own
+# mission, tools, MCP servers, budget and deterministic exit checks.
+#
+# Order matters only for priority: later stages (closer to launch) run first.
+# Stage fields: see runner/src/config.ts → StageDef.
+#
+# Capability separation (the "lethal trifecta" rule): only scout and validate
+# read the open web, and they get no shell and no secrets; every stage with a
+# shell or credentials reads documentation domains only (WebFetch and the
+# Playwright browser alike — local pages are always fine).
+# `sedef_data` is a built-in, in-process tool for allow-listed public data APIs
+# (iTunes Search/Lookup, HN, RDAP …) — research without a shell.
+
+stages:
+
+  # ───────────────────────────── factory-level jobs ─────────────────────────────
+
+  scout:
+    scope: factory
+    model: strategist
+    effort: high
+    prompt: scout.md
+    web: open
+    mcp: [sedef_data, apify]
+    tools:
+      allow: [Read, Glob, Grep, Write, Edit, WebSearch, WebFetch, Agent, Skill, TodoWrite]
+      deny: [Bash]
+    max_turns: 200
+    budget_usd: 8
+    timeout_minutes: 90
+    wip: false
+
+  portfolio:
+    scope: factory
+    model: strategist
+    effort: high
+    prompt: portfolio.md
+    web: docs
+    mcp: [sedef_data, revenuecat]
+    secrets: [ASC_VENDOR_NUMBER]
+    tools:
+      allow: [Read, Glob, Grep, Write, Edit, Bash, Agent, Skill, TodoWrite, WebFetch]
+      deny: [WebSearch]
+    max_turns: 120
+    budget_usd: 6
+    timeout_minutes: 60
+    wip: false
+
+  retro:
+    scope: factory
+    model: lead
+    prompt: retro.md
+    web: none
+    tools:
+      allow: [Read, Glob, Grep, Write, Edit, Bash, Agent, Skill, TodoWrite]
+      deny: [WebSearch, WebFetch]
+    max_turns: 120
+    budget_usd: 5
+    timeout_minutes: 60
+    wip: false
+
+  # ───────────────────────────── live products ─────────────────────────────
+
+  grow:
+    model: lead
+    prompt: grow.md
+    reset: [.sedef/grow.json]   # written afresh each attempt; the old one is kept as *.prev.json
+    web: docs
+    mcp: [sedef_data, revenuecat, context7]
+    secrets: [ASC_VENDOR_NUMBER]
+    tools:
+      allow: [Read, Glob, Grep, Write, Edit, Bash, Agent, Skill, TodoWrite, WebFetch]
+      deny: [WebSearch]
+    max_turns: 160
+    budget_usd: 8
+    timeout_minutes: 90
+    enter_delay_minutes: 10080     # first growth review one week after launch
+    poll_minutes: 10080            # then weekly
+    wip: false
+    verify:
+      - kind: files_exist
+        paths: [.sedef/grow.json, growth/latest.md]
+      - kind: json_field
+        file: .sedef/grow.json
+        field: next
+        one_of: [build, wait, sunset]
+    route:
+      file: .sedef/grow.json
+      field: next
+      map: { build: build, wait: grow, sunset: sunset }
+      default: grow
+
+  # ───────────────────────────── idea → product ─────────────────────────────
+
+  validate:
+    model: strategist
+    effort: high
+    prompt: validate.md
+    reset: [.sedef/verdict.json]   # written afresh each attempt; the old one is kept as *.prev.json
+    web: open
+    mcp: [sedef_data, apify]
+    tools:
+      allow: [Read, Glob, Grep, Write, Edit, WebSearch, WebFetch, Agent, Skill, TodoWrite]
+      deny: [Bash]
+    max_turns: 160
+    budget_usd: 8
+    timeout_minutes: 75
+    verify:
+      - kind: files_exist
+        paths: [.sedef/brief.md, .sedef/verdict.json]
+      - kind: json_field
+        file: .sedef/verdict.json
+        field: decision
+        one_of: [go, kill]
+      - kind: json_field
+        file: .sedef/verdict.json
+        field: lane
+        one_of: [ios, expo_dual, web_saas, chrome_extension, mac_direct, apify_actor, figma_plugin, digital_assets]
+    route:
+      file: .sedef/verdict.json
+      field: decision
+      map: { go: spec, kill: killed }
+    max_attempts: 2
+    on_exhausted: park
+
+  spec:
+    model: lead
+    effort: high
+    prompt: spec.md
+    web: docs
+    mcp: [context7]
+    tools:
+      allow: [Read, Glob, Grep, Write, Edit, Bash, Agent, Skill, TodoWrite, WebFetch]
+      deny: [WebSearch]
+    max_turns: 220
+    budget_usd: 12
+    timeout_minutes: 100
+    verify:
+      - kind: files_exist
+        paths: [.sedef/spec.md, .sedef/feature_list.json, .sedef/progress.json, STATUS.md, docs/DECISIONS.md, docs/phases/phase-01.md, .sedef/verify.sh]
+      # On a re-plan (SEDEF_REPLANS > 0) finished work is kept: passed features and done phases stay.
+      - kind: command
+        run: "jq -e --argjson replan \"${SEDEF_REPLANS:-0}\" '(type==\"array\") and length>0 and all(.[]; has(\"id\") and has(\"phase\") and (.acceptance|length>0) and (.passes|type==\"boolean\")) and ($replan>0 or all(.[]; .passes==false))' .sedef/feature_list.json >/dev/null"
+        timeout_seconds: 30
+      - kind: command
+        run: "jq -e --argjson replan \"${SEDEF_REPLANS:-0}\" '(.complete==false) and (.phases_total>0) and (.phases_done>=0) and (.phases_done<.phases_total) and ($replan>0 or .phases_done==0)' .sedef/progress.json >/dev/null"
+        timeout_seconds: 30
+      - kind: command
+        run: "bash .sedef/verify.sh contract"
+        timeout_seconds: 600
+    next: brand
+    max_attempts: 2
+    on_exhausted: park
+
+  brand:
+    model: strategist
+    effort: high
+    prompt: brand.md
+    web: docs                      # untrusted web pages are read only in scout/validate (no shell there)
+    mcp: [sedef_data, fal, recraft, replicate, stitch, figma]
+    tools:
+      allow: [Read, Glob, Grep, Write, Edit, Bash, WebSearch, WebFetch, Agent, Skill, TodoWrite]
+      deny: []
+    max_turns: 240
+    budget_usd: 14
+    timeout_minutes: 120
+    verify:
+      - kind: files_exist
+        paths: [DESIGN.md, .sedef/fingerprint.json, .sedef/naming.md, .sedef/direction.md, design/brand/icon-1024.png]
+      - kind: command
+        run: "npx -y @google/design.md@0.4.0 lint DESIGN.md"
+        timeout_seconds: 180
+      - kind: novelty
+    next: design
+    max_attempts: 3
+    on_exhausted: park
+
+  design:
+    model: lead
+    effort: high
+    prompt: design.md
+    reset: [design/critique.json]   # written afresh each attempt; the old one is kept as *.prev.json
+    web: docs                      # untrusted web pages are read only in scout/validate (no shell there)
+    mcp: [figma, stitch, mobbin, refero, playwright, mobilebuild]
+    tools:
+      allow: [Read, Glob, Grep, Write, Edit, Bash, WebSearch, WebFetch, Agent, Skill, TodoWrite]
+      deny: []
+    immutable: [DESIGN.md, .sedef/fingerprint.json]
+    max_turns: 240
+    budget_usd: 14
+    timeout_minutes: 120
+    verify:
+      - kind: files_exist
+        paths: [design/ui-spec.md, design/motion.md, design/critique.md, design/critique.json]
+      - kind: command
+        run: "ls design/screens/*.png >/dev/null 2>&1"
+        timeout_seconds: 30
+      - kind: json_field
+        file: design/critique.json
+        field: verdict
+        one_of: [pass]
+    next: build
+    max_attempts: 3
+    on_exhausted: park
+
+  # ───────────────────────────── build → release ─────────────────────────────
+
+  build:
+    model: lead
+    effort: high
+    prompt: build.md
+    web: docs
+    mcp: [mobilebuild, maestro, context7, playwright, revenuecat, supabase]
+    secrets: [APPLE_TEAM_ID]
+    tools:
+      allow: [Read, Glob, Grep, Write, Edit, Bash, Agent, Skill, TodoWrite, WebFetch]
+      deny: [WebSearch]
+    immutable: [.sedef/verify.sh, .sedef/project.env, .maestro/acceptance/**, tests/acceptance/**, DESIGN.md]
+    stop_gate:
+      command: "bash .sedef/verify.sh quick"
+      max_nudges: 2
+      timeout_seconds: 1500
+    max_turns: 320
+    budget_usd: 22
+    timeout_minutes: 150
+    verify:
+      - kind: command
+        run: "bash .sedef/verify.sh quick"
+        timeout_seconds: 2400
+    progress:
+      file: .sedef/progress.json
+      field: phases_done
+    route:
+      file: .sedef/progress.json
+      field: complete
+      map: { "true": qa, "false": build }
+    max_attempts: 3
+    on_exhausted: "goto:spec"
+
+  qa:
+    model: lead
+    effort: high
+    prompt: qa.md
+    reset: [.sedef/qa.json]   # written afresh each attempt; the old one is kept as *.prev.json
+    web: docs
+    mcp: [mobilebuild, maestro, playwright, context7]
+    tools:
+      allow: [Read, Glob, Grep, Write, Edit, Bash, Agent, Skill, TodoWrite, WebFetch]
+      deny: [WebSearch]
+    immutable: [.sedef/verify.sh, .sedef/project.env, .maestro/acceptance/**, tests/acceptance/**, DESIGN.md]
+    max_turns: 240
+    budget_usd: 12
+    timeout_minutes: 150
+    verify:
+      - kind: files_exist
+        paths: [.sedef/qa-report.md, .sedef/qa.json]
+      - kind: json_field
+        file: .sedef/qa.json
+        field: verdict
+        one_of: [pass, fix]
+    route:
+      file: .sedef/qa.json
+      field: verdict
+      map: { pass: store, fix: build }
+    max_attempts: 2
+    on_exhausted: "goto:build"
+
+  store:
+    model: lead
+    effort: high
+    prompt: store.md
+    reset: [.sedef/compliance.json]   # written afresh each attempt; the old one is kept as *.prev.json
+    web: docs                      # untrusted web pages are read only in scout/validate (no shell there)
+    mcp: [sedef_data, mobilebuild, playwright, fal, recraft, elevenlabs, revenuecat]
+    tools:
+      allow: [Read, Glob, Grep, Write, Edit, Bash, WebSearch, WebFetch, Agent, Skill, TodoWrite]
+      deny: []
+    immutable: [.sedef/verify.sh, .sedef/project.env, .maestro/acceptance/**, tests/acceptance/**]
+    max_turns: 260
+    budget_usd: 14
+    timeout_minutes: 150
+    verify:
+      - kind: files_exist
+        paths: [.sedef/store-plan.md, .sedef/compliance.json]
+      - kind: json_field
+        file: .sedef/compliance.json
+        field: pass
+        one_of: ["true"]
+      - kind: command
+        run: "bash .sedef/verify.sh store"
+        timeout_seconds: 900
+    next: release
+    max_attempts: 2
+    on_exhausted: park
+
+  release:
+    model: lead
+    prompt: release.md
+    web: docs
+    mcp: [revenuecat, expo]
+    secrets: [APPLE_TEAM_ID, VERCEL_TOKEN, CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, EXPO_TOKEN, GOOGLE_PLAY_SERVICE_ACCOUNT_JSON, CWS_CLIENT_ID, CWS_CLIENT_SECRET, CWS_REFRESH_TOKEN, CWS_PUBLISHER_ID, PADDLE_API_KEY, POLAR_ACCESS_TOKEN]
+    tools:
+      allow: [Read, Glob, Grep, Write, Edit, Bash, Agent, Skill, TodoWrite, WebFetch]
+      deny: [WebSearch]
+    immutable: [.sedef/verify.sh, .sedef/project.env, .maestro/acceptance/**, tests/acceptance/**]
+    max_turns: 200
+    budget_usd: 10
+    timeout_minutes: 150
+    verify:
+      - kind: files_exist
+        paths: [.sedef/release.json]
+      - kind: json_field
+        file: .sedef/release.json
+        field: status
+        one_of: [submitted, deployed, waiting_human]
+      # Nothing goes to a store with the placeholder legal host still in its metadata.
+      - kind: command
+        run: "jq -e '.status == \"waiting_human\"' .sedef/release.json >/dev/null || ! grep -rqs 'legal-site.invalid' metadata listing"
+        timeout_seconds: 30
+    route:
+      file: .sedef/release.json
+      field: status
+      map: { submitted: release_watch, deployed: launch, waiting_human: release }
+    irreversible: [submitted, deployed]   # a submission counts even if the session then ran out of turns
+    max_attempts: 2
+    on_exhausted: park
+
+  review_fix:
+    model: lead
+    effort: high
+    prompt: review_fix.md
+    web: docs
+    mcp: [mobilebuild, maestro, context7]
+    secrets: [APPLE_TEAM_ID, VERCEL_TOKEN, CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID, EXPO_TOKEN, GOOGLE_PLAY_SERVICE_ACCOUNT_JSON, CWS_CLIENT_ID, CWS_CLIENT_SECRET, CWS_REFRESH_TOKEN, CWS_PUBLISHER_ID]
+    tools:
+      allow: [Read, Glob, Grep, Write, Edit, Bash, Agent, Skill, TodoWrite, WebFetch]
+      deny: [WebSearch]
+    immutable: [.sedef/verify.sh, .sedef/project.env, .maestro/acceptance/**, tests/acceptance/**]
+    max_turns: 260
+    budget_usd: 14
+    timeout_minutes: 150
+    verify:
+      - kind: files_exist
+        paths: [.sedef/release.json]
+      - kind: json_field
+        file: .sedef/release.json
+        field: status
+        one_of: [submitted, waiting_human]
+    route:
+      file: .sedef/release.json
+      field: status
+      map: { submitted: release_watch, waiting_human: review_fix }
+    irreversible: [submitted]
+    max_attempts: 2
+    on_exhausted: park
+
+  release_watch:
+    model: fast
+    prompt: release_watch.md
+    reset: [.sedef/review-status.json]   # written afresh each attempt; the old one is kept as *.prev.json
+    web: none
+    secrets: [GOOGLE_PLAY_SERVICE_ACCOUNT_JSON, CWS_CLIENT_ID, CWS_CLIENT_SECRET, CWS_REFRESH_TOKEN, CWS_PUBLISHER_ID]
+    tools:
+      allow: [Read, Glob, Grep, Write, Edit, Bash]
+      deny: [WebSearch, WebFetch, Agent]
+    max_turns: 30
+    budget_usd: 0.8
+    timeout_minutes: 15
+    enter_delay_minutes: 60
+    poll_minutes: 120
+    wip: false
+    verify:
+      - kind: json_field
+        file: .sedef/review-status.json
+        field: next
+        one_of: [launch, grow, review_fix, wait]
+    route:
+      file: .sedef/review-status.json
+      field: next
+      map: { launch: launch, grow: grow, review_fix: review_fix, wait: release_watch }
+    max_attempts: 3
+    on_exhausted: park
+
+  launch:
+    model: lead
+    prompt: launch.md
+    reset: [.sedef/launch.json]   # written afresh each attempt; the old one is kept as *.prev.json
+    web: docs                      # distribution research happened in validate; this stage holds deploy tokens
+    mcp: [fal, recraft, elevenlabs, playwright]
+    secrets: [VERCEL_TOKEN, CLOUDFLARE_API_TOKEN, CLOUDFLARE_ACCOUNT_ID]
+    tools:
+      allow: [Read, Glob, Grep, Write, Edit, Bash, WebFetch, Agent, Skill, TodoWrite]
+      deny: [WebSearch]
+    max_turns: 220
+    budget_usd: 10
+    timeout_minutes: 120
+    wip: false
+    verify:
+      - kind: files_exist
+        paths: [launch/launch-plan.md, .sedef/launch.json]
+    next: grow
+    max_attempts: 2
+    on_exhausted: park

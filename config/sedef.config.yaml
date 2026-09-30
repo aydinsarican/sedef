@@ -1,0 +1,111 @@
+# Sedef — factory configuration
+# Every key has a sane default (runner/src/config.ts → DEFAULT_CONFIG); only
+# change what you need. Secrets never go here — they live in ~/.sedef/.env.
+
+factory:
+  name: sedef
+  timezone: Europe/Istanbul
+  products_dir: ~/sedef-products          # one git repo per product
+  github_owner: ""                        # e.g. "sedef-labs" → private repo per product via `gh`
+  support_email: ""                       # REQUIRED before any store release; a real, monitored inbox
+  bundle_id_prefix: com.example.sedef     # → com.example.sedef.<slug>
+  primary_locale: en-US
+  locales: [en-US, tr]                    # store listings + String Catalogs
+
+autonomy:
+  idea_gate: required        # required = you swipe ✅/❌ on every scout card (your only mandatory touchpoint)
+                             # auto     = cards scoring ≥ idea_auto_threshold go straight in
+  idea_auto_threshold: 4.2
+  ideas_per_scout: 3         # cards per daily scouting run
+  max_pending_ideas: 6       # scouting pauses while this many cards wait for you
+  idea_ttl_days: 7
+  # Apple's June 2026 guideline 4.3(b) update: repeated low-effort submissions can
+  # get a developer account removed. The factory never exceeds this many NEW apps
+  # per store per rolling 30 days, whatever the pipeline wants.
+  max_new_store_submissions_per_30d: 2
+  first_submission_needs_human: false   # true = one tap before each product's first store submission
+  # `asc web …` uses an Apple ID web session (unofficial endpoints) for the three things
+  # the API cannot do: create the app record, publish the privacy label, read Resolution
+  # Center messages. false = those become ~2-minute chores in your weekly batch.
+  apple_web_session_automation: false
+  max_replans: 2             # build → spec re-scoping loops before a product is parked
+
+concurrency:
+  max_parallel_sessions: 2   # simultaneous agent sessions (Mac mini M4: 2 with Xcode builds, 3 without)
+  max_active_products: 3     # products between validation and store submission
+
+schedules:
+  heartbeat_seconds: 120
+  scout: "08:30"
+  digest: "21:00"
+  portfolio_review: "sun 10:00"
+  retro: "sun 11:30"
+  quiet_hours: ["00:30", "08:00"]   # non-urgent Telegram messages are held until the window ends
+
+budgets_usd:
+  daily: 60
+  monthly: 1200
+  per_product_to_launch: 300   # a product that burns this before launch is parked for the portfolio review
+  per_session_default: 12
+  ads_daily: 0                 # paid acquisition stays a human chore in v0.1
+
+models:
+  # Judgment-heavy stages (scouting, validation verdicts, brand direction, portfolio).
+  strategist: claude-fable-5-1
+  # Spec, design, build, QA, store, release, growth.
+  lead: claude-opus-5-5
+  # Subagent bulk work is set per agent in plugin/agents/*.md (sonnet/haiku aliases).
+  worker: claude-sonnet-5-5
+  fast: claude-haiku-4-5-20251001
+  fallback: claude-opus-5-5
+
+auth:
+  # keychain: install.sh stores the Anthropic API key in the login keychain and Claude Code
+  #           reads it through apiKeyHelper — the key never enters the agents' shell env.
+  # env:      ANTHROPIC_API_KEY from ~/.sedef/.env (visible to the session process).
+  # oauth:    CLAUDE_CODE_OAUTH_TOKEN from `claude setup-token` (subscription). Check Anthropic's
+  #           current terms for automated use before choosing this.
+  mode: keychain
+  keychain_service: sedef-anthropic-api-key
+  keychain_account: sedef
+
+critic:
+  # A design critic from a different model family breaks "artificial hivemind" sameness.
+  # Set provider + an exact model id you have access to, and the matching key in ~/.sedef/.env.
+  enabled: false
+  provider: gemini          # gemini | openai
+  model: ""
+
+lanes:
+  ios:              { enabled: true }    # optional: template_repo: git@github.com:<you>/BaseApp.git
+  expo_dual:        { enabled: true }
+  web_saas:         { enabled: true }
+  chrome_extension: { enabled: true }
+  mac_direct:       { enabled: false }
+  apify_actor:      { enabled: false }
+  figma_plugin:     { enabled: false }
+  digital_assets:   { enabled: false }
+
+notify:
+  telegram: true
+  language: tr
+
+stores:
+  apple:
+    account_type: organization   # use a separate account from any personal apps you care about
+  google:
+    account_type: organization   # personal accounts need 12 testers × 14 days before production
+
+novelty:
+  threshold: 0.45            # min weighted distance to each of the last `window` products
+  window: 12
+  font_window: 6             # a display/text face may not repeat within this many products
+  palette_min_delta_e: 0.08  # OKLab distance between primary colors
+  weights:
+    direction: 1
+    palette: 1.5
+    fonts: 1.2
+    icon_style: 0.8
+    name_pattern: 0.5
+    category: 0.6
+    core_mechanic: 0.6

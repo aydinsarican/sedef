@@ -1,0 +1,77 @@
+{
+  "version": 1,
+  "note": "One value is drawn per axis, seeded by the product slug, excluding values used on that axis by recent products in the novelty ledger. Values are ingredients, not styles: combine them.",
+  "axes": {
+    "era_movement": [
+      { "id": "swiss-international", "hint": "rigorous grids, flush-left type, objective photography" },
+      { "id": "bauhaus", "hint": "primary geometry, functional ornament, bold rules" },
+      { "id": "art-deco", "hint": "symmetry, gilded lines, stepped forms" },
+      { "id": "art-nouveau", "hint": "organic curves, botanical line work" },
+      { "id": "mid-century-modern", "hint": "optimistic color, atomic shapes, warm wood tones" },
+      { "id": "seventies-supergraphics", "hint": "big stripes, rounded bold type, sunset palettes" },
+      { "id": "memphis", "hint": "playful clashes, squiggles, terrazzo confetti" },
+      { "id": "early-web-brutalism", "hint": "raw structure, system type, visible grids" },
+      { "id": "japanese-ma", "hint": "negative space, restraint, seasonal color" },
+      { "id": "dutch-modernism", "hint": "information design, strong typographic systems" },
+      { "id": "constructivism", "hint": "diagonals, red/black, photomontage energy" },
+      { "id": "victorian-ephemera", "hint": "labels, ornament frames, engraved detail" },
+      { "id": "scandinavian-functional", "hint": "light, calm, honest materials" },
+      { "id": "anatolian-craft", "hint": "Iznik tile blues, kilim geometry, hand-made rhythm" },
+      { "id": "contemporary-editorial", "hint": "magazine layouts, big numerals, pull quotes" },
+      { "id": "retro-computing", "hint": "CRT phosphor, bitmap type, beige hardware" }
+    ],
+    "material_texture": [
+      { "id": "paper-and-ink" }, { "id": "risograph-grain" }, { "id": "enamel" }, { "id": "anodized-aluminum" },
+      { "id": "terrazzo" }, { "id": "felt-and-fabric" }, { "id": "clay-and-ceramic" }, { "id": "neon-tube" },
+      { "id": "blueprint" }, { "id": "woodcut" }, { "id": "holographic-foil" }, { "id": "concrete" },
+      { "id": "ebru-marbling" }, { "id": "watercolor-wash" }, { "id": "cardboard-kraft" }, { "id": "frosted-acrylic" }
+    ],
+    "typeface_class": [
+      { "id": "grotesque" }, { "id": "geometric-sans" }, { "id": "humanist-sans" }, { "id": "didone" },
+      { "id": "slab-serif" }, { "id": "old-style-serif" }, { "id": "transitional-serif" }, { "id": "monospace" },
+      { "id": "rounded-sans" }, { "id": "wide-display" }, { "id": "condensed-display" }, { "id": "stencil" },
+      { "id": "script-accent" }, { "id": "variable-expressive" }
+    ],
+    "color_model": [
+      { "id": "duotone" }, { "id": "tritone-print" }, { "id": "mono-plus-one-accent" }, { "id": "jewel-tones" },
+      { "id": "pastel-high-key" }, { "id": "earth-tones" }, { "id": "neon-on-dark" }, { "id": "primary-colors" },
+      { "id": "desaturated-film" }, { "id": "tonal-single-hue" }, { "id": "complementary-clash" }, { "id": "ink-and-paper" }
+    ],
+    "grid_layout": [
+      { "id": "strict-modular" }, { "id": "asymmetric-editorial" }, { "id": "centered-axial" }, { "id": "full-bleed-imagery" },
+      { "id": "type-as-hero" }, { "id": "list-first-utility" }, { "id": "spatial-canvas" }, { "id": "stacked-sheets" },
+      { "id": "split-panel" }, { "id": "dense-tabular" }
+    ],
+    "motion_character": [
+      { "id": "snappy-mechanical", "hint": "short stiff springs, crisp ticks" },
+      { "id": "soft-organic", "hint": "long gentle springs, easing like breath" },
+      { "id": "bouncy-playful", "hint": "overshoot, squash and stretch" },
+      { "id": "slow-cinematic", "hint": "long crossfades, parallax, restraint" },
+      { "id": "paper-physical", "hint": "flips, folds, stacks with weight" },
+      { "id": "typewriter-stepwise", "hint": "discrete steps, character-by-character reveals" },
+      { "id": "liquid-morph", "hint": "shape interpolation, blobs settling" },
+      { "id": "near-still", "hint": "almost no motion; one precious moment" }
+    ],
+    "illustration_technique": [
+      { "id": "type-only" }, { "id": "flat-geometric" }, { "id": "line-engraving" }, { "id": "halftone-print" },
+      { "id": "clay-3d" }, { "id": "paper-collage" }, { "id": "isometric" }, { "id": "ink-brush" },
+      { "id": "pixel-art" }, { "id": "photographic" }, { "id": "abstract-shapes" }, { "id": "pictograms" },
+      { "id": "generative-pattern" }, { "id": "marbled-texture" }
+    ],
+    "iconography": [
+      { "id": "sf-symbols-tuned" }, { "id": "outlined-geometric" }, { "id": "filled-rounded" }, { "id": "duotone-icons" },
+      { "id": "hand-drawn-icons" }, { "id": "pictogram-system" }, { "id": "pixel-icons" }
+    ],
+    "voice_tone": [
+      { "id": "warm-coach" }, { "id": "dry-witty" }, { "id": "calm-clinical" }, { "id": "playful-mischievous" },
+      { "id": "poetic-minimal" }, { "id": "confident-expert" }, { "id": "friendly-neighbor" }, { "id": "quietly-mysterious" }
+    ],
+    "sound_haptics": [
+      { "id": "haptics-only" }, { "id": "soft-clicks" }, { "id": "mechanical-ticks" }, { "id": "musical-notes" }, { "id": "nature-foley" }
+    ],
+    "app_icon_form": [
+      { "id": "single-glyph" }, { "id": "monogram" }, { "id": "object-render" }, { "id": "abstract-mark" },
+      { "id": "pattern-crop" }, { "id": "landscape-vignette" }
+    ]
+  }
+}

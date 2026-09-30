@@ -1,0 +1,155 @@
+# Sedef policy — answers every permission prompt instead of you.
+#
+#   allow     the tool runs
+#   deny      blocked; the agent is told why and works around it
+#   escalate  blocked now + a chore lands in your weekly batch
+#
+# This is guardrail logic, not a sandbox. Hard isolation comes from running the
+# factory as a dedicated macOS user with no access to your personal files,
+# keychain or accounts (docs/SETUP.md). The foreman additionally protects its
+# own code, config, plugin, ledger and state at runtime.
+
+unknown_tool: allow
+
+# No human is inside a session: questions and plan-mode pauses would hang forever.
+deny_tools:
+  AskUserQuestion: "No human is present in factory sessions. Decide using the skills' decision rules, record it as 🤖 in docs/DECISIONS.md, and move on. If a human is truly required, write a chore to .sedef/chores.json."
+  EnterPlanMode: "Plan in your own reasoning or in a markdown file; plan mode pauses for approval that never comes."
+
+always_allow_tools:
+  [Agent, Task, Skill, TodoWrite, TodoRead, ToolSearch, TaskCreate, TaskUpdate, TaskGet, TaskList, TaskStop, TaskOutput, BashOutput, KillShell, KillBash, SendMessage, ExitPlanMode]
+
+read_tools: [Read, Glob, Grep, LS, NotebookRead]
+write_tools: [Write, Edit, MultiEdit, NotebookEdit]
+
+# Never readable or writable by agents.
+protected_paths:
+  - "~/.sedef/**"
+  - "~/.ssh/**"
+  - "~/.asc/**"
+  - "~/.aws/**"
+  - "~/.gnupg/**"
+  - "~/.config/gh/**"
+  - "~/.expo/**"
+  - "~/.netrc"
+  - "~/.npmrc"
+  - "~/.claude/.credentials.json"
+  - "~/Library/Keychains/**"
+  - "**/*.p8"
+  - "**/*.p12"
+  - "**/*.mobileprovision"
+  - "**/*.keystore"
+  - "**/*.jks"
+  - "**/service-account*.json"
+  - "**/.env"
+  - "**/.env.local"
+  - "**/.env.production"
+
+# Readable, never writable: anything that would change what future sessions load.
+protected_write_paths:
+  - "**/.mcp.json"
+  - "**/.claude/settings.json"
+  - "**/.claude/settings.local.json"
+  - "**/.claude/agents/**"
+  - "**/.claude/skills/**"
+  - "**/.claude/commands/**"
+  - "**/.claude/hooks/**"
+  - "~/.claude/**"
+  - "~/.agents/**"
+  - "**/.git/hooks/**"
+
+# The judge writes the scoreboard: only the evaluator subagent may mark progress.
+# (Plugin agents are namespaced "sedef:<name>"; the bare name is listed defensively.)
+agent_only_writes:
+  ".sedef/progress.json": { agents: ["sedef:evaluator", "evaluator"], stages: [build] }
+  ".sedef/feature_list.json": { agents: ["sedef:evaluator", "evaluator"], stages: [build] }
+  ".sedef/evaluations/**": { agents: ["sedef:evaluator", "evaluator"], stages: [build] }
+
+# Reviewers report; they do not edit what they review.
+agent_write_scope:
+  "sedef:evaluator": [".sedef/**", "design/critique.md", "design/critique.json"]
+  "sedef:qa-engineer": [".sedef/evidence/**", ".sedef/qa/**", "/tmp/**", "/private/tmp/**"]
+  "sedef:compliance-reviewer": [".sedef/**"]
+  "sedef:market-analyst": [".sedef/research/**", "/tmp/**"]
+  "sedef:scout": ["ideas/research/**", "/tmp/**"]
+
+# Documentation hosts for stages with `web: docs`.
+docs_domains:
+  - developer.apple.com
+  - docs.swift.org
+  - swift.org
+  - docs.expo.dev
+  - expo.dev
+  - reactnative.dev
+  - developer.android.com
+  - support.google.com
+  - developer.chrome.com
+  - developer.mozilla.org
+  - web.dev
+  - nextjs.org
+  - astro.build
+  - tailwindcss.com
+  - ui.shadcn.com
+  - supabase.com
+  - vercel.com
+  - developers.cloudflare.com
+  - developer.paddle.com
+  - polar.sh
+  - revenuecat.com
+  - docs.apify.com
+  - maestro.dev
+  - docs.maestro.dev
+  - playwright.dev
+  - remotion.dev
+  - code.visualstudio.com
+  - developers.raycast.com
+  - github.com
+  - raw.githubusercontent.com
+  - npmjs.com
+  - asccli.sh
+
+bash:
+  deny:
+    - { re: '(^|[;&|(]\s*)sudo\b', reason: "sudo is not available to agents" }
+    - { re: '\brm\s+-[a-zA-Z]*[rR][a-zA-Z]*\s+(/|~/?|\$HOME/?)(\s|$)', reason: "recursive delete of / or home" }
+    - { re: '\b(curl|wget)\b[^|;&]*\|\s*(ba|z)?sh\b', reason: "pipe-to-shell installs are not allowed; use brew/npm/pip with pinned versions" }
+    - { re: '\bgit\s+push\b[^;&|]*(--force(?!-with-lease)|\s-f(\s|$))', reason: "force-push is not allowed" }
+    - { re: '\bsecurity\s+(find|dump|export|delete|unlock|add|set)-', reason: "keychain access is not allowed" }
+    - { re: '\b(launchctl|crontab)\b', reason: "persistence changes are human-only" }
+    - { re: '\bgh\s+(repo\s+(delete|archive)|repo\s+edit\b[^;&|]*--visibility|secret\b|auth\b)', reason: "repo deletion/visibility, secrets and auth are human-only" }
+    - { re: '(^|[;&|]\s*)(env|printenv|export\s+-p)\s*($|[;&|>])', reason: "dumping the environment is not allowed" }
+    - { re: '\b(ssh|scp|sftp|nc|ncat|socat|telnet)\s', reason: "raw remote-access tools are not allowed" }
+    - { re: '\b(defaults\s+write|systemsetup|networksetup|spctl|csrutil|pfctl|tmutil)\b', reason: "system settings are human-only" }
+    - { re: '\bxcrun\s+mcp-server\s+(enable|disable)', reason: "Xcode agent access is configured by a human" }
+    - { re: '\bosascript\b', reason: "UI scripting is not allowed" }
+    - { re: '\basc\s+(?:[a-z][a-z-]*\s+){0,3}(?:delete|remove|expire|revoke)\b', reason: "destructive App Store Connect operations are human-only" }
+    - { re: '\bvercel\s+(rm|remove|teams|domains\s+rm)\b', reason: "destructive Vercel operations are human-only" }
+    - { re: '\bwrangler\b[^;&|]*\bdelete\b', reason: "destructive Cloudflare operations are human-only" }
+    - { re: '\bsupabase\s+(projects\s+delete|db\s+reset\s+--linked)', reason: "destructive Supabase operations are human-only" }
+    - { re: '\bnpm\s+(publish|unpublish|deprecate)\b', reason: "publishing to npm is human-only" }
+    - { re: '\bsedef\s+(start|tick|idea|approve|reject|done|run|kill|pause|resume|rejection|hook)\b|\bsedef\s+proposals\s+apply\b', reason: "factory control commands belong to the human; agents may use `sedef novelty check`, `sedef critic`, `sedef status` and `sedef budget`" }
+    - { re: '\.(p8|p12|mobileprovision|keystore|jks)\b', reason: "credential files are off-limits" }
+    - { re: '(~|\$HOME|\$\{HOME\}|/Users/[^/\s]+)/\.[^\s/;&|]*[*?\[]', reason: "wildcards over hidden folders in the home directory are not allowed" }
+    - { re: 'service-account[^\s]*\.json', reason: "credential files are off-limits (tools read them via env)" }
+    - { re: '(>|\btee\b|sed\s+-i|\bmv\b|\bcp\b|\brm\b|\btruncate\b|\bpython3?\b|\bnode\b|\bperl\b|\bruby\b|\bjq\b[^|;&]*>)[^;&|]*\.sedef/(progress|feature_list)\.json', reason: "only the evaluator subagent may update the scoreboard, with the Write/Edit tools", stages: [build] }
+    - { re: '(>|\btee\b|sed\s+-i|\bmv\b|\bcp\b|\brm\b|\bchmod\b|\btruncate\b)[^;&|]*(\.sedef/verify\.sh|\.sedef/project\.env|\.maestro/acceptance|tests/acceptance)', reason: "acceptance contracts and verifiers are immutable in this stage", stages: [build, qa, store, release, review_fix] }
+  escalate:
+    - { re: '\basc\s+web\b', kind: apple_web, reason: "App Store Connect web-session actions (app record, privacy label, Resolution Center) are human-only unless autonomy.apple_web_session_automation is on" }
+    - { re: '\basc\s+(publish\s+appstore\b[^;&|]*--submit|review\s+submit\b|submit\s+create\b)', kind: store_submission_new, reason: "App Store submission" }
+    - { re: '\bfastlane\s+[^;&|]*\bsupply\b[^;&|]*--track\s+production', kind: store_submission_new, reason: "Google Play production release" }
+    - { re: '\bvercel\s+domains\s+(add|buy)\b|\bwrangler\b[^;&|]*\bdomains?\b', kind: spend, reason: "domain purchases and DNS changes are batched for a human" }
+    - { re: 'api\.searchads\.apple\.com', kind: spend, reason: "paid acquisition is a human decision in v0.1" }
+
+# Per-session caps on paid or rate-limited tools.
+tool_limits:
+  "mcp__fal__run_model": 16
+  "mcp__fal__submit_job": 8
+  "mcp__replicate__create_predictions": 12
+  "mcp__recraft__generate_image": 16
+  "mcp__recraft__vectorize_image": 12
+  "mcp__elevenlabs__*": 12
+  "mcp__stitch__generate_screen_from_text": 10
+  "mcp__stitch__generate_variants": 6
+  "mcp__apify__call-actor": 10
+  "WebSearch": 80
+  "WebFetch": 160

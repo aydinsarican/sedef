@@ -1,0 +1,15 @@
+.DS_Store
+runner/node_modules/
+runner/dist/
+# Factory runtime state (local to the factory host)
+factory/state.json
+factory/spend.jsonl
+factory/foreman.lock
+factory/logs/
+factory/inbox/
+factory/ideas/
+factory/ledger/*.jsonl
+factory/reports/
+factory/portfolio/
+factory/proposals/
+# learnings are worth committing now and then — they are the factory's memory
