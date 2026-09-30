@@ -108,7 +108,9 @@ store() {
   compgen -G "screenshots/framed/*.png" >/dev/null || compgen -G "screenshots/raw/*.png" >/dev/null || die "no screenshots"
   [ -f design/brand/icon-1024.png ] || die "missing design/brand/icon-1024.png"
   local icon; icon="$(jq -r '.expo.icon // empty' app.json 2>/dev/null)"
-  [ -n "$icon" ] && [ -f "$icon" ] || die "app.json expo.icon must point at the brand icon (e.g. ./assets/icon.png copied from design/brand/icon-1024.png)"
+  if [ -z "$icon" ] || [ ! -f "$icon" ]; then
+    die "app.json expo.icon must point at the brand icon (e.g. ./assets/icon.png copied from design/brand/icon-1024.png)"
+  fi
   if command -v sips >/dev/null 2>&1; then
     sips -g hasAlpha "$icon" | grep -q 'hasAlpha: no' || die "$icon must not have an alpha channel (App Store)"
   fi
